@@ -83,3 +83,29 @@ impl Row {
         Self::from(&remainder[..])
     }
 }
+
+#[test]
+fn create_row() {
+    assert!(true);
+
+    assert!(true);
+
+    assert!(true);
+}
+#[test]
+fn waaaa() {
+    assert!(true);
+
+    assert!(true);
+
+    assert!(true);
+}
+
+#[test]
+fn bingle_boo() {
+    assert!(true);
+
+    assert!(true);
+
+    assert!(true);
+}
