@@ -2,7 +2,7 @@ use crate::Document;
 use crate::Row;
 use crate::Terminal;
 use std::env;
-use std::io::{self, stdout, Error, Write};
+use std::io::{self, stdout, Error};
 use std::time::Duration;
 use std::time::Instant;
 use termion::color;
@@ -45,6 +45,7 @@ pub struct Editor {
 impl Editor {
     pub fn run(&mut self) {
         let _stdout = stdout().into_raw_mode().unwrap();
+        // let stdout = MouseTerminal::from(io::stdout().into_raw_mode().unwrap());
         loop {
             if let Err(error) = self.refresh_screen() {
                 die(error);
@@ -55,6 +56,9 @@ impl Editor {
             if let Err(error) = self.process_keypress() {
                 die(error);
             }
+            // if let Err(error) = self.process_mouse() {
+            //     die(error);
+            // }
         }
     }
 
@@ -67,7 +71,7 @@ impl Editor {
             if doc.is_ok() {
                 doc.unwrap()
             } else {
-                initial_status = format!("ErR: Could not open file: {}", file_name);
+                initial_status = format!("Could not open file: {}", file_name);
                 Document::default()
             }
         } else {
@@ -109,6 +113,17 @@ impl Editor {
         let pressed_key = read_key()?;
         match pressed_key {
             Key::Ctrl('q') => self.should_quit = true,
+            Key::Char(c) => {
+                self.document.insert_char(&self.cursor_position, c);
+                self.move_cursor(Key::Right)
+            }
+            Key::Delete => self.document.delete_char(&self.cursor_position),
+            Key::Backspace => {
+                if self.cursor_position.x > 0 || self.cursor_position.y > 0 {
+                    self.move_cursor(Key::Left);
+                    self.document.delete_char(&self.cursor_position);
+                }
+            }
             Key::Up
             | Key::Down
             | Key::Left
@@ -127,7 +142,7 @@ impl Editor {
         let Position { x, y } = self.cursor_position;
         let width = self.terminal.size().width as usize;
         let height = self.terminal.size().height as usize;
-        let mut offset = &mut self.offset;
+        let offset = &mut self.offset;
         if y < offset.y {
             offset.y = y;
         } else if y >= offset.y.saturating_add(height) {
@@ -165,7 +180,6 @@ impl Editor {
     fn move_cursor(&mut self, key: Key) {
         let Position { mut y, mut x } = self.cursor_position;
         let terminal_height = self.terminal.size().height as usize;
-        let size = self.terminal.size();
         let height = self.document.len();
         let mut width = if let Some(row) = self.document.row(y) {
             row.len()
@@ -249,7 +263,7 @@ impl Editor {
         // }
         let line_indicator = format!(
             "{}/{}",
-            self.cursor_position.y.saturating_add((1)),
+            self.cursor_position.y.saturating_add(1),
             self.document.len()
         );
         let len = status.len() + line_indicator.len();
@@ -283,6 +297,10 @@ fn read_key() -> Result<Key, std::io::Error> {
         }
     }
 }
+
+// fn read_mouse() {
+//     io::stdin()
+// }
 
 fn die(e: Error) {
     print!("{}", termion::clear::All);

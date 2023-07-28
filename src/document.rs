@@ -1,4 +1,6 @@
+use crate::Position;
 use crate::Row;
+use crate::Terminal;
 use std::fs;
 
 #[derive(Default)]
@@ -27,5 +29,43 @@ impl Document {
     }
     pub fn len(&self) -> usize {
         self.rows.len()
+    }
+    pub fn insert_char(&mut self, at: &Position, c: char) {
+        if c == '\n' {
+            self.insert_newline(at);
+            Terminal::cursor_position(&Position {
+                x: 0,
+                y: at.y.saturating_add(2),
+            });
+            return;
+        }
+        if at.y == self.len() {
+            let mut row = Row::default();
+            row.insert(0, c);
+            self.rows.push(row);
+        } else if at.y < self.len() {
+            let row = self.rows.get_mut(at.y).unwrap();
+            row.insert(at.x, c);
+        }
+    }
+    pub fn insert_newline(&mut self, at: &Position) {
+        if at.y > self.len() {
+            return;
+        }
+        // end of line, just add a new row
+        if at.y == self.len() {
+            self.rows.push(Row::default());
+            return;
+        }
+        // middle of a row
+        let new_row = self.rows.get_mut(at.y).unwrap().split(at.x);
+        self.rows.insert(at.y + 1, new_row);
+    }
+    pub fn delete_char(&mut self, at: &Position) {
+        if at.y >= self.len() {
+            return;
+        }
+        let row = self.rows.get_mut(at.y).unwrap();
+        row.delete(at.x)
     }
 }
